@@ -913,6 +913,8 @@ public:
         // std::lock_guard<std::mutex> lock(mtx);        
         latestFrameIDLoopCloure = cloudKeyPoses3D->points.size() - 1;
         SCclosestHistoryFrameID = -1; // init with -1
+
+        //  这里检测回环
         auto detectResult = scManager.detectLoopClosureID(); // first: nn index, second: yaw diff 
         SCclosestHistoryFrameID = detectResult.first;
         yawDiffRad = detectResult.second; // not use for v1 (because pcl icp withi initial somthing wrong...)
@@ -922,6 +924,7 @@ public:
             return false;
         }
 
+        // SC检测到了回环
         // save latest key frames: query ptcloud (corner points + surface points)
         // NOTE: using "closestHistoryFrameID" to make same root of submap points to get a direct relative between the query point cloud (latestSurfKeyFrameCloud) and the map (nearHistorySurfKeyFrameCloud). by giseop
         // i.e., set the query point cloud within mapside's local coordinate
@@ -1000,6 +1003,7 @@ public:
         bool isValidSCloopFactor = false;
 
         /*
+         * 将RS检测到的历史帧和当前帧匹配，求transform, 作为约束边
          * 1. RS loop factor (radius search)
          */
         if( RSclosestHistoryFrameID != -1 ) {
@@ -1016,6 +1020,7 @@ public:
             pcl::PointCloud<PointType>::Ptr unused_result(new pcl::PointCloud<PointType>());
             icp.align(*unused_result);
 
+            //  通过score阈值判定icp是否匹配成功
             std::cout << "[RS] ICP fit score: " << icp.getFitnessScore() << std::endl;
             if ( icp.hasConverged() == false || icp.getFitnessScore() > historyKeyframeFitnessScore ) {
                 std::cout << "[RS] Reject this loop (bad icp fit score, > " << historyKeyframeFitnessScore << ")" << std::endl;
@@ -1026,6 +1031,7 @@ public:
                 isValidRSloopFactor = true;
             }
 
+            //  这里RS检测成功，加入约束边
             if( isValidRSloopFactor == true ) {
                 correctionCameraFrame = icp.getFinalTransformation(); // get transformation in camera frame (because points are in camera frame)
                 pcl::getTranslationAndEulerAngles(correctionCameraFrame, x, y, z, roll, pitch, yaw);
@@ -1048,6 +1054,7 @@ public:
         }
 
         /*
+         * SC检测成功，进行icp匹配
          * 2. SC loop factor (scan context)
          */
         if( SCclosestHistoryFrameID != -1 ) {
@@ -1077,6 +1084,7 @@ public:
                 isValidSCloopFactor = true;
             }
 
+            // icp匹配成功也加入约束边
             if( isValidSCloopFactor == true ) {
                 correctionCameraFrame = icp.getFinalTransformation(); // get transformation in camera frame (because points are in camera frame)
                 pcl::getTranslationAndEulerAngles (correctionCameraFrame, x, y, z, roll, pitch, yaw);
@@ -1625,6 +1633,7 @@ public:
             */
         bool usingRawCloud = true;
         if( usingRawCloud ) { // v2 uses downsampled raw point cloud, more fruitful height information than using feature points (v1)
+            //  这里对点云提取scan context特征
             pcl::PointCloud<PointType>::Ptr thisRawCloudKeyFrame(new pcl::PointCloud<PointType>());
             pcl::copyPointCloud(*laserCloudRawDS,  *thisRawCloudKeyFrame);
             scManager.makeAndSaveScancontextAndKeys(*thisRawCloudKeyFrame);

@@ -903,7 +903,7 @@ public:
             downSizeFilterHistoryKeyFrames.filter(*RSnearHistorySurfKeyFrameCloudDS);
         }
 
-        /* 
+        /* ***************************************************************************************************************
          * 2. Scan context-based global localization 
          */
         SClatestSurfKeyFrameCloud->clear();
@@ -1529,7 +1529,6 @@ public:
         }
     }
 
-
     void saveKeyFramesAndFactor(){
 
         currentRobotPosPoint.x = transformAftMapped[3];
@@ -1646,7 +1645,6 @@ public:
         surfCloudKeyFrames.push_back(thisSurfKeyFrame);
         outlierCloudKeyFrames.push_back(thisOutlierKeyFrame);
     } // saveKeyFramesAndFactor
-
 
     void correctPoses(){
     	if (aLoopIsClosed == true){

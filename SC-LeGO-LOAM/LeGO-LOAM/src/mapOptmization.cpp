@@ -871,28 +871,32 @@ public:
                 }
             }
         }
-
+	// 如果使用临近搜索不到
         if (RSclosestHistoryFrameID == -1){
+            // 那么什么都不做，后面会利用SC来再进行一次搜索
             // Do nothing here
             // then, do the next check: Scan context-based search 
             // not return false here;
         }
+	// 如果使用临近搜索到了临近点
         else {
-            // save latest key frames
+            // save latest key frames 将 现在所得到的局部点云帧 利用 当前位姿 转换成 全局坐标点云， 保存
             latestFrameIDLoopCloure = cloudKeyPoses3D->points.size() - 1;
             *RSlatestSurfKeyFrameCloud += *transformPointCloud(cornerCloudKeyFrames[latestFrameIDLoopCloure], &cloudKeyPoses6D->points[latestFrameIDLoopCloure]);
             *RSlatestSurfKeyFrameCloud += *transformPointCloud(surfCloudKeyFrames[latestFrameIDLoopCloure],   &cloudKeyPoses6D->points[latestFrameIDLoopCloure]);
             pcl::PointCloud<PointType>::Ptr RShahaCloud(new pcl::PointCloud<PointType>());
             int cloudSize = RSlatestSurfKeyFrameCloud->points.size();
+            // 在保存的临近全局坐标点云中，遍历，将有效点放入 RShahaCloud
             for (int i = 0; i < cloudSize; ++i){
                 if ((int)RSlatestSurfKeyFrameCloud->points[i].intensity >= 0){
                     RShahaCloud->push_back(RSlatestSurfKeyFrameCloud->points[i]);
                 }
             }
+            // 在 清空后的 RSlatestSurfKeyFrameCloud 放入 临近全局坐标点云的有效数据
             RSlatestSurfKeyFrameCloud->clear();
             *RSlatestSurfKeyFrameCloud = *RShahaCloud;
 
-            // save history near key frames
+            // save history near key frames  在 历史帧中 取 历史位姿 前后25帧 共50帧点云数据，转换到全局坐标下
             for (int j = -historyKeyframeSearchNum; j <= historyKeyframeSearchNum; ++j){
                 if (RSclosestHistoryFrameID + j < 0 || RSclosestHistoryFrameID + j > latestFrameIDLoopCloure)
                     continue;
@@ -941,7 +945,7 @@ public:
         SClatestSurfKeyFrameCloud->clear();
         *SClatestSurfKeyFrameCloud = *SChahaCloud;
 
-	   // save history near key frames: map ptcloud (icp to query ptcloud)
+	   // save history near key frames: map ptcloud (icp to query ptcloud)  在 历史帧中 搜索 历史位姿 前后25帧 共50帧点云数据，转换到全局坐标下
         for (int j = -historyKeyframeSearchNum; j <= historyKeyframeSearchNum; ++j){
             if (SCclosestHistoryFrameID + j < 0 || SCclosestHistoryFrameID + j > latestFrameIDLoopCloure)
                 continue;
